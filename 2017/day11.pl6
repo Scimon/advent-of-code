@@ -30,7 +30,7 @@ while dist( $x, $y ) != 0 {
 say $steps;
 
 sub dist( $x, $y ) {
-    return sqrt( ( $x * $x ) + ( $y * $y ) ); 
+    return ( abs($x) + abs($y) + abs($x+$y) ) / 2;  
 }
 
 sub take-step ( $dir, $x is copy, $y is copy ) {

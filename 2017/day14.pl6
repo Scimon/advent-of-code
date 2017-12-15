@@ -1,15 +1,18 @@
 use v6.c;
 
-sub MAIN ( $input ) {
+my $count;
+for ^128 -> $delta {
+    my $key = "amgozmfv-$delta";
+    my $hash = knot-hash( $key ).parse-base(16);
+    $count += bag( $hash.base(2).comb ){"1"};
+    say $delta,":",$count;
+}
 
+say $count;
+
+sub knot-hash ( Str $input ) {
     my @input = $input.comb.map( *.ord );
-#    my @input = "130,126,1,11,140,2,255,207,18,254,246,164,29,104,0,224".comb.map( *.ord );
     constant length = 256;
-    
-    #my @input = 3, 4, 1, 5;
-    #onstant length = 5;
-    
-    #my @input = "1,2,3".comb.map( *.ord );
     @input.push( 17, 31, 73, 47, 23 );
     
     my @list = ^length;
@@ -35,14 +38,11 @@ sub MAIN ( $input ) {
             @list = @temp[^length];
         }
     }
-    
-    say @list;
-    
+        
     for ^16 {
         my $h = sprintf "%02s", ( [+^] @list.splice($_,16) ).base(16);
-        say $h;
         @list.splice($_,0,$h);
     }
     
-    say @list.join.lc;
+    return @list.join.lc;
 }

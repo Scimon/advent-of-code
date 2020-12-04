@@ -43,9 +43,6 @@ multi sub MAIN ( "test" ) {
     ok Passport.parse( "example".IO.slurp );
     ok Passport.parse( "input".IO.slurp );
     done-testing;
-    my $actions = PassportActions.new;
-    Passport.parse( "example".IO.slurp, :$actions );
-    say $actions;
 }
 
 multi sub MAIN ( Str $file where * ~~ "input"|"example" ) {

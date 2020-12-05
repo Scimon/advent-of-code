@@ -53,6 +53,6 @@ multi sub MAIN( "test" ) {
 multi sub MAIN() {
     my @seats = "input".IO.lines.map( { BoardingPass.new( :code($_) ) } );
     say "Max {@seats.max({ $_.seat-id }).gist}";
-    my $set = @seats.sort({$_.seat-id}).rotor( 3 => -2 ).first( -> ($a, $b, $c) { !( $a+1 == $b == $c-1 ) } );
-    say "Seat {$set[1]+1}";
+    my $set = @seats.sort({$_.seat-id}).rotor( 2 => -1 ).first( -> ($a, $b) { $a+1 != $b } );
+    say "Seat {$set[0]+1}";
 }

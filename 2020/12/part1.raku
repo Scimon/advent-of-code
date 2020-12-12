@@ -9,7 +9,6 @@ sub MAIN ( $file where "example"|"input" ) {
 
     for $file.IO.lines.map( { my %h = ( c => $_.substr(0..0), v => $_.substr(1..*).Int ) } ) -> %rules {
         ( $dir, $n, $e ) = process( %rules<c>, %rules<v>, $dir, $n, $e );
-        say "{%rules.gist} : $dir, $n, $e";        
     }
 
     say abs($n) + abs($e);

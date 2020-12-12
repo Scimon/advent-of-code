@@ -10,7 +10,6 @@ sub MAIN ( $file where "example"|"input" ) {
 
     for $file.IO.lines.map( { my %h = ( c => $_.substr(0..0), v => $_.substr(1..*).Int ) } ) -> %rules {
         ( $sn, $se, $wn, $we ) = process( %rules<c>, %rules<v>, $sn, $se, $wn, $we );
-        say "{%rules.gist} : $sn, $se, $wn, $we";        
     }
 
     say abs($sn) + abs($se);

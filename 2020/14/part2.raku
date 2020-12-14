@@ -41,7 +41,6 @@ sub MAIN ( $file where "example2"|"input" ) {
                 }
             }
             for @keys = @keys.map( *.join("").parse-base(2) ) -> $key {
-                note "$key : $val";
                 %memory{$key} = $val;
             }
         }

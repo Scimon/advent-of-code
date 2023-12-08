@@ -136,13 +136,7 @@ multi sub prime-factors( $p ) {
 }
 
 sub lcm( *@numbers ) {
-    my %final;
-    for @numbers.map( { Bag.new( prime-factors($_) ) } ) -> $factors {
-        for $factors.keys -> $key {
-            my $value = $factors{$key};
-            %final{$key} //= $value;
-            %final{$key} = $value if %final{$key} < $value;
-        }
-    }
-    return [*] %final.pairs.map( -> $p { $p.key ** $p.value } );
+    [*] (
+        [∪]  @numbers.map( { Bag.new( prime-factors($_) ) } )
+    ).pairs.map(-> $p { $p.key ** $p.value });
 }

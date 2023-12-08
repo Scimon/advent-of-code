@@ -104,12 +104,16 @@ multi sub MAIN('p2-2', $file ) {
         @locations.push($node.id) if $node.id ~~ / 'A' $/;
     }
 
-    @locations = @locations.race.map( -> $l { follow-path( $l, %nodes, @moves ) } );
+    my @paths;
+    for @locations -> $l {
+        @paths.push( start follow-path( $l, %nodes, @moves ) );
+    }
+    @locations = await @paths;
     say lcm(@locations);
     
 }
 
-sub follow-path ( $start, %nodes, @moves ) {
+sub follow-path ( $start, %nodes is copy, @moves is copy ) {
     my $location = $start;
     my $moves-taken = 0;
     while ( $location !~~ / 'Z' $/ ) {

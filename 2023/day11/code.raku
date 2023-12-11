@@ -91,7 +91,6 @@ class Universe {
 multi sub MAIN('test') {
     use Test;
     my $universe = Universe.new(lines => ('..','.#') );
-    dd $universe;
     is $universe.gist, "..\n.#", 'Universe is as expected';
     $universe.expand(expansion => 1);
     is $universe.gist, "...\n...\n..#", 'Universe Expanded OK';

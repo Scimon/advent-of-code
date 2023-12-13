@@ -18,13 +18,28 @@ multi sub MAIN('test') {
     is-deeply adjacent((2,2),(2,2)), {up => (1,2), left => (2,1)};
     is start-point($g1,$s1), 'F';
     is furthest-distance($g1, $s1)[0], 4;
-    is internal-points($g1,$s1), 1;
+#    is internal-points($g1,$s1), 1;
 
+    is path($g1,'down',0,0), [<. . . . .>], 'p1';
+    is path($g1,'down',0,1), [<. F | L .>], 'p2';
+    is path($g1,'up',4,1),   [<. L | F .>], 'p3';
+    is path($g1,'up',0,0), [< . >], 'p4';
+    
+    is crosses([< . >], 'up'), 0, 'c1';
+    is crosses([< - >], 'up'), 1, 'c2';
+    is crosses([< | >], 'up'), 0, 'c3';
+    is crosses([< - >], 'left'), 0, 'c4';
+    is crosses([< | >], 'left'), 1, 'c5';
+    is crosses([< L F - - J 7>], 'up'), 2, 'c6';
+    is crosses([< J - - F >], 'left'), 1, 'c7';
+    is crosses([< . | L - 7 . F - J | .>], 'right'), 4, 'c8';
+
+    
     for ( (
-#            'example1' => 1,
+            'example1' => 1,
             'example3' => 4,
-#            'example4' => 8,
-#            example5 => 10
+            'example4' => 8,
+            example5 => 10
         ) ) -> $pair {
         my $file = $pair.key;
         my $expected = $pair.value;
@@ -45,6 +60,48 @@ multi sub MAIN('p2', $file ) {
     say internal-points($g1,$s1);
 }
 
+my $debug = False;
+
+sub crosses ( @l, $dir ) {
+    my $f-dir = $dir;
+    given $dir {
+        when 'up' { $f-dir = 'down'; @l = @l.reverse }
+        when 'left' { $f-dir = 'right'; @l = @l.reverse; }
+    }
+    
+    my $rem = $f-dir ~~ 'down' ?? '|' !! '-';
+    my $skip-pairs = $f-dir ~~'down' ?? any( 'FL', '7J' ) !! any( '7F', 'LJ' );
+    my $squish-pairs = $f-dir ~~ 'down' ?? any( 'FJ', '7L' ) !! any( 'FJ', 'L7' );
+    
+    @l .= grep( { $_ !~~ $rem } );
+    say @l if $debug;
+    my @skipped;
+    my $skip = False;
+    for (1..^@l.elems) -> $i {
+        say $i,':',@l[$i-1..$i].join(''),':',$skip-pairs,':',$squish-pairs,':',$skip if $debug;
+        if ( @l[$i-1..$i].join('') ~~ $squish-pairs ) {
+            say "Squish" if $debug;
+            next;
+        }
+        if ( @l[$i-1..$i].join('') ~~ $skip-pairs ) {
+            say "Sk.." if $debug;
+            $skip = True;
+            next;
+        }
+        if ( $skip ) {
+            say "..ip" if $debug;
+            $skip = False;
+            next;
+        }
+        @skipped.push(@l[$i-1]);
+    }
+    @skipped.push(@l[*-1]) if @l && !$skip;
+    say @skipped if $debug;
+    @skipped .= grep( { $_ !~~ '.' } );
+    say @skipped if $debug;
+    @skipped.elems;
+} 
+
 sub internal-points($grid,$start) {
     my ($distance, %seen) = furthest-distance($grid, $start);
     my $internal = 0;
@@ -62,9 +119,14 @@ sub internal-points($grid,$start) {
         @i-cells[$r] = [];
         INNER: for (0..$max-c) -> $c {
             next INNER if %seen{"{$r}x{$c}"};
-            my $i = is-internal($grid,$r,$c);
-            $internal++ if $i;
-            @i-cells[$r][$c] = $i;
+            my @paths = ('up','down','left','right').map(
+                            -> $dir {
+                                $dir => path($grid,$dir,$r,$c);  
+                            });
+            my @crosses = @paths.map( -> $p { crosses($p.value,$p.key) } );
+            next INNER if all(@crosses) %% 2;
+            $internal++;
+            @i-cells[$r][$c] = True;
         }
     }
 
@@ -77,130 +139,18 @@ sub internal-points($grid,$start) {
     return $internal;
 }
 
-sub is-internal($grid,$r,$c) {
-
-    my $check = "{$r}x{$c}" eq any("6x2");
-    
-    my %scores = (
-        'up' =>    { '.-.' => 1, '.L|' => 1, '|F.' => 1 },
-        'down' =>  { '.-.' => 1 },
-        'left' =>  { '.|.' => 1 },
-        'right' => { '.|.' => 1 },
-    );
-
-    my $max-r = $grid.elems-1;
-    my $max-c = $grid[0].elems-1;
-    my @scores = <up down left right>.map(
-        -> $d {
-            my @hops = hops( $grid, $r, $c, $max-r, $max-c, $d );
-            @hops = @hops.grep(
-                -> @tri { ! (all(@tri) ~~ '.') }
-            ).map( -> @tri { @tri.join('') });
-            my $score = [+] @hops.grep({ %scores{$d}{$_} })
-                            .map({ %scores{$d}{$_} } );
-            $score = -1 unless @hops.elems;
-            say $r, 'x', $c, $d, @hops, $score if $check;
-            $score;
-        } );
-    say @scores if $check;
-    return False if any(@scores) == -1;
-    return False if any(@scores) %% 2;
-    return True;
-}
-
-sub hops($grid,$r,$c,$max-r,$max-c,$dir) {
-    my @out;
+sub path(@grid,$dir,$r,$c) {
+    my @max = [@grid.elems-1, @grid[0].elems-1];
     my @p = [$r,$c];
-    my %adj = adjacent(@p,($max-r,$max-c)); 
-    loop {
-        @out.push($grid[@p[0]][@p[1]]);
-        last unless %adj{$dir};
-        @p = %adj{$dir}.Array;
-        %adj = adjacent(@p,($max-r,$max-c)); 
-    };
-    return @out.rotor(3 => -2);
-}
-
-sub x-internal-points($g1,$s1) {
-    my ($distance, %seen) = furthest-distance($g1, $s1);
-
-    my %crosses = (
-        up    => {
-            '-O' => -1, '-I' => -1, '-.' => -1,
-            'O-' => 1, 'I-' => 1, '.-' => 1,
-            '--' => 2 , 'L7' => 1, 'JF' => 1,
-            'F-' => 1, 'L-' => 1, '7-' => 1, 'J-' => 1,
-            '-F' => 1, '-L' => 1, '-7' => 1, '-J' => 1,
-        },
-        down  => {
-            '-O' => -1, '-I' => -1, '-.' => -1,
-            'O-' => 1, 'I-' => 1, '.-' => 1,
-            '--' => 2 , '7L' => 1, 'FJ' => 1,
-            'F-' => 1, 'L-' => 1, '7-' => 1, 'J-' => 1,
-            '-F' => 1, '-L' => 1, '-7' => 1, '-J' => 1,
-        },
-        left  => {
-            '|O' => -1, '|I' => -1, '|.' => -1,
-            'O|' => 1, 'I|' => 1, '.|' => 1,
-            '||' => 2, '7L' => 1, 'JF' => 1,
-            'F|' => 1, 'L|' => 1, '7|' => 1, 'J|' => 1,
-            '|F' => 1, '|L' => 1, '|7' => 1, '|J' => 1,
-        },
-        right => {
-            '|O' => -1, '|I' => -1, '|.' => -1,
-            'O|' => 1, 'I|' => 1, '.|' => 1,
-            '||' => 2,  'L7' => 1, 'FJ' => 1,
-            'F|' => 1, 'L|' => 1, '7|' => 1, 'J|' => 1,
-            '|F' => 1, '|L' => 1, '|7' => 1, '|J' => 1,
-        },
-    );
-    my %opp = ( up => 'down', down => 'up',
-                left => 'right', 'right' => 'left' );
-    my $internal = 0;
-    my $max-r = $g1.elems-1;
-    my $max-c = $g1[0].elems-1;
-    for (0..$max-r) -> $r {
-        INNER: for (0..$max-c) -> $c {
-            next INNER if %seen{"{$r}x{$c}"};
-            $g1[$r][$c] = '.';
-        }
+    my %adjacent = adjacent(@p,@max);
+    my @out = [@grid[@p[0]][@p[1]]];
+    while (%adjacent{$dir}) {
+        @p = %adjacent{$dir}.list;
+        %adjacent = adjacent(@p,@max) if @p.elems;
+        @out.push(@grid[@p[0]][@p[1]]);
     }
-    
-    for (0..$max-r) -> $r {
-        INNER: for (0..$max-c) -> $c {
-            next INNER if %seen{"{$r}x{$c}"};
-            $g1[$r][$c] = 'O';
-            my $check = "{$r}x{$c}" eq any("3x3","6x3");
-            my @directions = <up right down left>.map(
-                -> $dir {
-                    my $crossed = 0;
-                    my $ex = True;
-                    my @p = [$r,$c];
-                    my %adj = adjacent(@p,($max-r,$max-c));
-                    RAY: loop {
-                        last RAY unless %adj{$dir};
-                        $ex = $ex && $g1[@p[0]][@p[1]] eq any('.','I','O');
-                        %adj = adjacent(@p,($max-r,$max-c));
-                        last unless %adj{$dir};
-                        my @n = %adj{$dir}.Array;
-                        my $pair = $g1[@p[0]][@p[1]] ~ $g1[@n[0]][@n[1]];
-                        say @p,":",$dir,":",$pair,":",%crosses{$dir}{$pair} if $check;
-                        $crossed+= %crosses{$dir}{$pair} if %crosses{$dir}{$pair};
-                        @p = %adj{$dir}.Array;
 
-                    };
-                    $ex ?? -1 !! $crossed;
-                });
-            say $r, "x", $c, ":", @directions.join(",") if $check;
-            next INNER if so any(@directions) == -1;
-#            next INNER if so all(@directions) %% 2;
-            next INNER if any(@directions) %% 2;
-            $g1[$r][$c] = 'I';
-            $internal++;
-        }
-    }
-    $g1.map(*.join('')).join("\n").say;
-    return $internal;
+    return @out;
 }
 
 sub adjacent(@point,@max) {

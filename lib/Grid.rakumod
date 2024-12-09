@@ -26,6 +26,17 @@ submethod BUILD( :@lines ) {
 
 }
 
+method clone {
+    my $new-points = Hash[Hash[T]].new;
+    for $!points.keys -> $x {
+        for $!points{$x}.keys -> $y {
+            $new-points{$x} //= Hash[T].new;
+            $new-points{$x}{$y} = $!points{$x}{$y}.clone;
+        }
+    }
+    nextwith points => $new-points, |%_;
+}
+
 multi method point-at(:$x,:$y) {
     %.points{$x}{$y};
 }

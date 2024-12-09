@@ -89,3 +89,33 @@ sub check-loop( $file, $point ) {
     }
     return False;        
 }
+
+multi sub MAIN('p2.1', $file ) {
+    my $main = Map.new( lines => $file.IO.lines );
+    my $map = $main.clone;
+    my %walked;
+    while $map.in-bounds( x => $map.guard.x, y => $map.guard.y ) {
+        %walked{$map.guard.gist} = True;
+        $map.move-guard;
+    }
+    
+    %walked.keys.race.grep(
+        -> $gist {
+            my @p = $gist.split("x");
+            my $point = Blocker.new( x => @p[0].Int, y => @p[1].Int );
+            check-loop-two( $main.clone, $point );
+        }
+    ).elems.say;
+
+}
+
+sub check-loop-two( $map, $point ) {
+    $map.add-point( $point );
+    my %walked;
+    while $map.in-bounds( x => $map.guard.x, y => $map.guard.y ) {
+        %walked{"{$map.guard.gist}:{$map.guard.direction.Str}"} = True;
+        $map.move-guard;
+        return True if %walked{"{$map.guard.gist}:{$map.guard.direction.Str}"};
+    }
+    return False;        
+}

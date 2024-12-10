@@ -40,13 +40,35 @@ method clone {
 multi method point-at(:$x,:$y) {
     %.points{$x}{$y};
 }
+multi method point-at($x,$y) {
+    %.points{$x}{$y};
+}
 multi method point-at(Str $p where * ~~ /^ \d+ 'x' \d+ $/) {
     my $m = $p.match( /^ (\d+) 'x' (\d+) $/ );
     self.point-at( x => $m[0].Int, y => $m[1].Int );
 }
 
+multi method orth-adjacent(Point :point(:$p) ) { self.orth-adjacent($p) }
 
+multi method orth-adjacent(Point $p) {
+    gather {
+        for ( [-1,0], [1,0], [0,1],[0,-1] ) -> $d {
+            if ( self.in-bounds( x => $p.x + $d[0], y => $p.y + $d[1] ) ) {
+                take self.point-at( x => $p.x + $d[0], y => $p.y + $d[1] );
+            }
+        }
+    }
+}
 
+method all-points() {
+    gather {
+        for $!min-y..$!max-y -> $y {
+            for $!min-x..$!max-x -> $x {
+                take self.point-at( :$x, :$y );
+            }
+        }
+    }
+}
 
 method add-point($point) {
     $.points{$point.x} //= Hash[T].new;
@@ -64,7 +86,7 @@ method gist() {
         for ($!min-x..$!max-x) -> $x {
             @row.push(self.point-at(:$x,:$y) ??
                       self.point-at(:$x,:$y).Str !!
-                      $.empty );
+                       $.empty );
         }
         @out.push(@row);
     }

@@ -37,16 +37,6 @@ multi sub MAIN('ext', $file, $blinks is copy) {
     "/tmp/day-11-0".unlink;
 }
 
-multi sub MAIN('test') {
-    for 1..10 -> $b {
-        for 0..10 -> $v {
-            my @a = ($v);
-            for ^$b { @a.=map({process($_)}) }
-            say "$b : $v : {@a.elems}";
-        }
-    }
-}
-
 subset EvenInt of Int where *.Str.chars %% 2;
 
 multi sub process (0) { 1 }

@@ -37,6 +37,33 @@ multi sub MAIN('ext', $file, $blinks is copy) {
     "/tmp/day-11-0".unlink;
 }
 
+multi sub MAIN( 'supply', $file, $blink ) {
+    my $in = Supplier.new();
+    my @supplies = [$in.Supply];
+    for (^$blink) -> $i {
+        @supplies.push( supply { whenever @supplies[$i] -> $v { say "$i : $v"; emit $_ for process($v) } } );
+    }
+    my $out = @supplies[$blink].elems.tail.tap(&say);
+    $in.emit($_) for $file.IO.slurp.chomp.split(" ").map(*.Int);
+    $in.done();
+}
+
+multi sub MAIN('copied', $file, $blinks ) {
+    my @stones = $file.IO.slurp.chomp.split(" ").map(*.Int);
+
+    my %counts;
+    %counts{$_}++ for @stones;
+
+    for ^$blinks -> $i {
+        my %new_counts;
+        for keys %counts -> $stone {
+            %new_counts{$_} += %counts{$stone} for process( $stone.Int );
+        }
+        %counts = %new_counts;
+        say "$i : {%counts.values.sum}";
+    }
+}     
+
 subset EvenInt of Int where *.Str.chars %% 2;
 
 multi sub process (0) { 1 }

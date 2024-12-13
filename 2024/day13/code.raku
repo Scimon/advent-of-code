@@ -14,7 +14,7 @@ multi sub MAIN ('brute', $file, Part :p($part)=1 ) {
 multi sub MAIN( 'gsl', $file, Part :p($part)=1 ) {
     my @lines = $file.IO.lines;
     my $add = $part ~~ 1 ?? 0 !! 10000000000000;
-    say [+] @lines.rotor( 3 => 1 ).map( -> @block { solve-block( parse-block( $add, @block  ) ) } ).grep( * !~~ Inf );
+    say [+] @lines.rotor( 3 => 1 ).race.map( -> @block { solve-block( parse-block( $add, @block  ) ) } ).grep( * !~~ Inf );
 }
 
 multi sub MAIN('test') {
@@ -60,11 +60,7 @@ sub solve-block( %results ) {
     
     my @out2 = LU-solve($matrix-a, @out[1], $matrix-b);
 
-    @out2.say;
-    
     @out2 =  @out2.grep( -> $v { my $a = $v.get(0); my $b = $v.get(1); round($a,1) =~= $a && round($b,1) =~= $b } ).map( -> $v { round($v.get(0),1) * 3 + round($v.get(1),1) } ).min;
-
-    @out2[0].say;
 
     return @out2[0];
 }
